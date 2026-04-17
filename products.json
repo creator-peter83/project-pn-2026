@@ -5,7 +5,7 @@
     "Product_Line": "솔리드 코팅",
     "Product_Name": "팬톤 포뮬러 가이드 코팅, 비코팅",
     "Product_URL": "https://www.colorn.kr/product/%ED%8C%AC%ED%86%A4-pantone-%EC%BB%AC%EB%9F%AC%EC%B9%A9-%ED%8F%AC%EB%AE%AC%EB%9F%AC-%EA%B0%80%EC%9D%B4%EB%93%9C-%EC%86%94%EB%A6%AC%EB%93%9C-%EC%9C%A0%EA%B4%91%EB%AC%B4%EA%B4%91-gp1601b-%ED%8C%AC%ED%84%B4-%EC%B9%A9-%EC%B9%BC%EB%9D%BC-%EB%B6%81/444/category/7/display/1/",
-    "Status": "Active",
+    "Status": "Y",
     "Sort_Order": "1"
   },
   {
@@ -14,7 +14,7 @@
     "Product_Line": "솔리드 코팅",
     "Product_Name": "팬톤 솔리드 칩 코팅, 비코팅 (GP1606B)",
     "Product_URL": "https://www.colorn.kr/product/%ED%8C%AC%ED%86%A4-pantone-%EC%BB%AC%EB%9F%AC-%EC%86%94%EB%A6%AC%EB%93%9C-%EC%B9%A9-%EC%BD%94%ED%8C%85%EB%B9%84%EC%BD%94%ED%8C%85-gp1606b-%EC%BB%AC%EB%9F%AC%EC%B9%A9-%EC%B9%BC%EB%9D%BC-%EB%B6%81/445/category/9/display/1/",
-    "Status": "Active",
+    "Status": "Y",
     "Sort_Order": "2"
   },
   {
@@ -23,7 +23,7 @@
     "Product_Line": "솔리드 코팅",
     "Product_Name": "팬톤 솔리드 컬러 세트 (GP1608B)",
     "Product_URL": "https://www.colorn.kr/product/%ED%8C%AC%ED%86%A4-pantone-%EC%86%94%EB%A6%AC%EB%93%9C-%EC%BB%AC%EB%9F%AC-%EC%84%B8%ED%8A%B8-4%EA%B6%8C%EA%B5%AC%EC%84%B1-gp1608b-%EC%BB%AC%EB%9F%AC%EC%B9%A9-%EC%B9%BC%EB%9D%BC-%EB%B6%81/246/category/9/display/1/",
-    "Status": "Active",
+    "Status": "Y",
     "Sort_Order": "3"
   },
   {
@@ -32,7 +32,7 @@
     "Product_Line": "솔리드 비코팅",
     "Product_Name": "팬톤 솔리드 가이드 세트 (GP1605B)",
     "Product_URL": "https://www.colorn.kr/product/%ED%8C%AC%ED%86%A4-pantone-%EC%BB%AC%EB%9F%AC-%EC%86%94%EB%A6%AC%EB%93%9C-%EA%B0%80%EC%9D%B4%EB%93%9C-%EC%84%B8%ED%8A%B8-4%EA%B6%8C%EA%B5%AC%EC%84%B1-gp1605b-%EC%BB%AC%EB%9F%AC%EC%B9%A9-%ED%99%95%EC%9D%B8%EC%9A%A9-%EC%B9%BC%EB%9D%BC-%EB%B6%81/1123/category/9/display/1/",
-    "Status": "Active",
+    "Status": "Y",
     "Sort_Order": "4"
   }
 ]
