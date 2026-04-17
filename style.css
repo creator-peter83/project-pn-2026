@@ -1,0 +1,264 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #ffffff;
+  color: #000000;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+.finder-wrap {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 80px 40px 100px;
+}
+
+.finder-intro {
+  text-align: left;
+  margin-bottom: 36px;
+}
+
+.finder-eyebrow {
+  margin: 0 0 14px;
+  font-size: 15pt;
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  color: #000000;
+}
+.finder-eyebrow-strong {
+  font-weight: 800;
+}
+
+.finder-title {
+  margin: 0 0 18px;
+  font-size: 40pt;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #000000;
+}
+
+.finder-desc {
+  margin: 0;
+  font-size: 22pt;
+  font-weight: 400;
+  line-height: 1.45;
+  color: #000000;
+  word-break: keep-all;
+}
+
+.finder-search-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 980px;
+  margin-top: 40px;
+}
+
+#colorSearchInput {
+  flex: 1;
+  height: 72px;
+  padding: 0 24px;
+  border: 1.5px solid #d9d9d9;
+  border-radius: 999px;
+  outline: none;
+  background: #ffffff;
+  color: #000000;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#colorSearchInput::placeholder {
+  color: #8a8a8a;
+}
+
+#colorSearchInput:focus {
+  border-color: #000000;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
+}
+
+#colorSearchBtn {
+  width: 160px;
+  height: 72px;
+  border: none;
+  border-radius: 999px;
+  background: #000000;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 25px;
+  font-weight: 800;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+#colorSearchBtn:hover {
+  opacity: 0.92;
+}
+
+#colorSearchBtn:active {
+  transform: scale(0.98);
+}
+
+#colorSearchBtn svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+#finderResult {
+  width: 100%;
+  max-width: 980px;
+  margin-top: 28px;
+}
+
+.finder-empty,
+.finder-error {
+  padding: 22px 4px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #555555;
+}
+
+.finder-result-item {
+  border: 1px solid #e7e7e7;
+  border-radius: 20px;
+  padding: 18px 22px;
+  margin-bottom: 12px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.finder-result-item:hover {
+  border-color: #cfcfcf;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+.finder-result-item strong {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #000000;
+}
+
+.finder-result-item div {
+  margin-top: 6px;
+  font-size: 15px;
+  color: #666666;
+}
+
+.finder-product-card {
+  border: 1px solid #e7e7e7;
+  border-radius: 20px;
+  padding: 20px 22px;
+  margin-bottom: 12px;
+  background: #ffffff;
+}
+
+.finder-product-card strong {
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.45;
+  color: #000000;
+}
+
+.finder-product-card div {
+  margin-top: 6px;
+  font-size: 15px;
+  color: #666666;
+}
+
+.finder-product-card a {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: #000000;
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+#finderBackBtn {
+  margin-bottom: 16px;
+  padding: 11px 16px;
+  border: 1px solid #d8d8d8;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #000000;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+@media (max-width: 1024px) {
+  .finder-wrap {
+    padding: 60px 24px 80px;
+  }
+
+  .finder-eyebrow {
+    font-size: 13pt;
+  }
+
+  .finder-title {
+    font-size: 30pt;
+  }
+
+  .finder-desc {
+    font-size: 20pt;
+  }
+
+  .finder-search-box {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .finder-wrap {
+    padding: 40px 20px 60px;
+  }
+
+  .finder-title {
+    font-size: 24pt;
+  }
+
+  .finder-desc {
+    font-size: 15pt;
+  }
+
+  .finder-search-box {
+    gap: 10px;
+  }
+
+  #colorSearchInput {
+    height: 58px;
+    font-size: 16px;
+    padding: 0 18px;
+  }
+
+  #colorSearchBtn {
+    width: 58px;
+    height: 58px;
+  }
+
+  #colorSearchBtn svg {
+    width: 20px;
+    height: 20px;
+  }
+}

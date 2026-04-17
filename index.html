@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PANTONE Color Finder</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="finder-wrap">
+    <div class="finder-intro">
+      <p class="finder-eyebrow"><span class="finder-eyebrow-strong">FIND</span> PANTONE COLORS</p>
+      <h1 class="finder-title">팬톤 컬러번호로 제품 찾기</h1>
+      <p class="finder-desc">
+        찾는 팬톤 컬러번호를 입력해보세요. 해당 컬러가 포함된 제품을 바로 확인할 수 있습니다.
+      </p>
+    </div>
+
+    <div class="finder-search-box">
+      <input
+        type="text"
+        id="colorSearchInput"
+        placeholder="예: 100 / 100 C / 100U / 19-4052 TCX"
+        aria-label="팬톤 컬러번호 입력"
+      >
+      <button
+        type="button"
+        id="colorSearchBtn"
+        aria-label="검색"
+      >
+        검색
+      </button>
+    </div>
+
+    <div id="finderResult"></div>
+  </div>
+
+  <script src="./finder.js"></script>
+</body>
+</html>
