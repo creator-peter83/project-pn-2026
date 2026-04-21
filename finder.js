@@ -1,6 +1,6 @@
 // Pantone Color Finder - split JSON version
-// Required files in the same GitHub Pages folder:
-// colors_graphic.json, colors_fhi.json, colors_plastic.json, colors_munsell.json, products.json
+// UI class names are matched to the original style.css:
+// .finder-result-item, .finder-product-card, .finder-empty, .finder-error
 
 const COLOR_FILES = [
   "colors_graphic.json",
@@ -11,7 +11,6 @@ const COLOR_FILES = [
 
 let colorRows = [];
 let productMap = new Map();
-let lastResults = [];
 
 function normalizeText(value) {
   return String(value ?? "")
@@ -21,7 +20,7 @@ function normalizeText(value) {
 }
 
 function compactColorRow(row) {
-  // New compact format:
+  // Compact format:
   // [Color_Code_Display, Color_Code_Normalized, Color_Number, Suffix, Product_ID]
   if (Array.isArray(row)) {
     return {
@@ -33,7 +32,7 @@ function compactColorRow(row) {
     };
   }
 
-  // Backward compatibility for old object-format colors.json
+  // Backward compatibility for object-format JSON
   return {
     display: String(row.Color_Code_Display ?? row.display ?? row.code ?? "").trim(),
     norm: String(row.Color_Code_Normalized ?? row.norm ?? "").trim(),
@@ -81,27 +80,25 @@ function getEl(...selectors) {
   return null;
 }
 
-function ensureResultsContainer() {
-  let colorBox = getEl("#results", "#colorResults", "#searchResults", ".results", ".color-results");
-  if (!colorBox) {
-    colorBox = document.createElement("div");
-    colorBox.id = "results";
-    document.body.appendChild(colorBox);
+function getResultBox() {
+  let box = getEl("#finderResult", "#result", "#results", "#colorResults", "#searchResults");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "finderResult";
+    const searchBox = getEl(".finder-search-box");
+    if (searchBox) {
+      searchBox.insertAdjacentElement("afterend", box);
+    } else {
+      document.body.appendChild(box);
+    }
   }
-
-  let productBox = getEl("#productResults", "#productList", "#products", ".product-results", ".product-list");
-  if (!productBox || productBox === colorBox) {
-    productBox = document.createElement("div");
-    productBox.id = "productResults";
-    colorBox.insertAdjacentElement("afterend", productBox);
-  }
-
-  return { colorBox, productBox };
+  return box;
 }
 
-function setStatus(message) {
-  const { colorBox } = ensureResultsContainer();
-  colorBox.innerHTML = `<p class="finder-status">${message}</p>`;
+function setStatus(message, type = "empty") {
+  const box = getResultBox();
+  const cls = type === "error" ? "finder-error" : "finder-empty";
+  box.innerHTML = `<div class="${cls}">${message}</div>`;
 }
 
 async function loadData() {
@@ -116,13 +113,17 @@ async function loadData() {
     )
   );
 
-  colorRows = colorResponses.flat().map(compactColorRow).filter(row => row.display && row.productId);
+  colorRows = colorResponses
+    .flat()
+    .map(compactColorRow)
+    .filter(row => row.display && row.productId);
 
   const productResponse = await fetch("products.json", { cache: "no-store" });
   if (!productResponse.ok) throw new Error("products.json 로드 실패");
-  const products = await productResponse.json();
 
+  const products = await productResponse.json();
   productMap = new Map();
+
   products.forEach(product => {
     const id = productIdOf(product);
     if (id) productMap.set(id, product);
@@ -136,6 +137,7 @@ function searchColors(query) {
   if (!q) return [];
 
   const matched = [];
+
   for (const row of colorRows) {
     const displayNorm = normalizeText(row.display);
     const rowNorm = normalizeText(row.norm || row.display);
@@ -154,6 +156,7 @@ function searchColors(query) {
   }
 
   const grouped = new Map();
+
   matched.forEach(({ row, exactScore }) => {
     const key = row.display;
     if (!grouped.has(key)) {
@@ -165,6 +168,7 @@ function searchColors(query) {
         score: exactScore
       });
     }
+
     const item = grouped.get(key);
     item.productIds.add(row.productId);
     item.score = Math.min(item.score, exactScore);
@@ -176,43 +180,47 @@ function searchColors(query) {
 }
 
 function renderColorResults(results, query) {
-  const { colorBox, productBox } = ensureResultsContainer();
-  productBox.innerHTML = "";
+  const box = getResultBox();
 
   if (!query.trim()) {
-    colorBox.innerHTML = `<p class="finder-status">검색어를 입력해 주세요.</p>`;
+    setStatus("검색어를 입력해 주세요.");
     return;
   }
 
   if (!results.length) {
-    colorBox.innerHTML = `<p class="finder-status">검색 결과가 없습니다.</p>`;
+    setStatus("검색 결과가 없습니다.");
     return;
   }
 
   const html = [
-    `<div class="finder-summary">검색 결과 ${results.length}개</div>`,
-    `<div class="color-result-list">`
+    `<div class="finder-empty">검색 결과 ${results.length}개</div>`
   ];
 
   results.forEach(item => {
     html.push(`
-      <button type="button" class="color-result-item" data-code="${escapeHtml(item.display)}">
+      <div class="finder-result-item" role="button" tabindex="0" data-code="${escapeAttribute(item.display)}">
         <strong>${escapeHtml(item.display)}</strong>
-        <span>수록 제품 ${item.productIds.size}건</span>
-      </button>
+        <div>수록 제품 ${item.productIds.size}건</div>
+      </div>
     `);
   });
 
-  html.push(`</div>`);
-  colorBox.innerHTML = html.join("");
+  box.innerHTML = html.join("");
 
-  colorBox.querySelectorAll("[data-code]").forEach(button => {
-    button.addEventListener("click", () => showProductsForColor(button.dataset.code));
+  box.querySelectorAll("[data-code]").forEach(item => {
+    const open = () => showProductsForColor(item.dataset.code);
+    item.addEventListener("click", open);
+    item.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        open();
+      }
+    });
   });
 }
 
 function showProductsForColor(colorCode) {
-  const { productBox } = ensureResultsContainer();
+  const box = getResultBox();
 
   const rows = colorRows.filter(row => row.display === colorCode);
   const products = rows
@@ -221,6 +229,7 @@ function showProductsForColor(colorCode) {
     .filter(isProductActive);
 
   const unique = new Map();
+
   products.forEach(product => {
     unique.set(productIdOf(product), product);
   });
@@ -229,51 +238,71 @@ function showProductsForColor(colorCode) {
     .sort((a, b) => sortOrderOf(a) - sortOrderOf(b) || productNameOf(a).localeCompare(productNameOf(b), "ko"));
 
   if (!sortedProducts.length) {
-    productBox.innerHTML = `
-      <section class="product-section">
-        <h2>${escapeHtml(colorCode)}</h2>
-        <p class="finder-status">해당 컬러번호는 온라인 상품으로 확인이 어렵습니다. 고객센터로 연락해주세요.</p>
-      </section>
+    box.innerHTML = `
+      <button type="button" id="finderBackBtn">← 검색 결과로 돌아가기</button>
+      <div class="finder-empty">
+        <strong>${escapeHtml(colorCode)}</strong><br>
+        해당 컬러번호는 온라인 상품으로 확인이 어렵습니다. 고객센터로 연락해주세요.
+      </div>
     `;
+    bindBackButton();
     return;
   }
 
   const html = [
-    `<section class="product-section">`,
-    `<h2>${escapeHtml(colorCode)}</h2>`,
-    `<p class="finder-summary">수록 제품 ${sortedProducts.length}건</p>`,
-    `<div class="product-result-list">`
+    `<button type="button" id="finderBackBtn">← 검색 결과로 돌아가기</button>`,
+    `<div class="finder-empty"><strong>${escapeHtml(colorCode)}</strong><br>수록 제품 ${sortedProducts.length}건</div>`
   ];
 
   sortedProducts.forEach(product => {
     const url = productUrlOf(product);
     html.push(`
-      <article class="product-card">
-        <h3>${escapeHtml(productNameOf(product))}</h3>
-        <p>${escapeHtml(productCategoryOf(product))}</p>
-        ${url ? `<a class="product-link" href="${escapeAttribute(url)}" target="_blank" rel="noopener">제품 보기</a>` : ""}
-      </article>
+      <div class="finder-product-card">
+        <strong>${escapeHtml(productNameOf(product))}</strong>
+        <div>${escapeHtml(productCategoryOf(product))}</div>
+        ${url ? `<a href="${escapeAttribute(url)}" target="_blank" rel="noopener">제품 보기</a>` : ""}
+      </div>
     `);
   });
 
-  html.push(`</div></section>`);
-  productBox.innerHTML = html.join("");
-  productBox.scrollIntoView({ behavior: "smooth", block: "start" });
+  box.innerHTML = html.join("");
+  bindBackButton();
+  box.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function bindBackButton() {
+  const button = getEl("#finderBackBtn");
+  const input = getSearchInput();
+
+  if (button && input) {
+    button.addEventListener("click", () => {
+      const results = searchColors(input.value || "");
+      renderColorResults(results, input.value || "");
+    });
+  }
+}
+
+function getSearchInput() {
+  return getEl("#colorSearchInput", "#searchInput", "#search-input", "#keyword", "input[type='search']", "input[type='text']");
+}
+
+function getSearchButton() {
+  return getEl("#colorSearchBtn", "#searchButton", "#searchBtn", "#btnSearch", "button[type='submit']", "button");
 }
 
 function bindSearch() {
-  const input = getEl("#searchInput", "#search-input", "#keyword", "input[type='search']", "input[type='text']");
-  const button = getEl("#searchButton", "#searchBtn", "#btnSearch", "button[type='submit']", "button");
+  const input = getSearchInput();
+  const button = getSearchButton();
 
   if (!input) {
-    setStatus("검색 입력창을 찾을 수 없습니다. index.html의 input id를 확인해 주세요.");
+    setStatus("검색 입력창을 찾을 수 없습니다. index.html의 input id를 확인해 주세요.", "error");
     return;
   }
 
   const run = () => {
     const query = input.value || "";
-    lastResults = searchColors(query);
-    renderColorResults(lastResults, query);
+    const results = searchColors(query);
+    renderColorResults(results, query);
   };
 
   if (button) button.addEventListener("click", run);
@@ -283,7 +312,7 @@ function bindSearch() {
   });
 
   input.addEventListener("input", () => {
-    if (!input.value.trim()) renderColorResults([], "");
+    if (!input.value.trim()) setStatus("검색어를 입력해 주세요.");
   });
 }
 
@@ -306,6 +335,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     bindSearch();
   } catch (error) {
     console.error(error);
-    setStatus(`데이터를 불러오지 못했습니다: ${escapeHtml(error.message)}`);
+    setStatus(`데이터를 불러오지 못했습니다: ${escapeHtml(error.message)}`, "error");
   }
 });
