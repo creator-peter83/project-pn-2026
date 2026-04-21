@@ -1,239 +1,311 @@
-const COLORS_URL = './colors.json';
-const PRODUCTS_URL = './products.json';
+// Pantone Color Finder - split JSON version
+// Required files in the same GitHub Pages folder:
+// colors_graphic.json, colors_fhi.json, colors_plastic.json, colors_munsell.json, products.json
+
+const COLOR_FILES = [
+  "colors_graphic.json",
+  "colors_fhi.json",
+  "colors_plastic.json",
+  "colors_munsell.json"
+];
 
 let colorRows = [];
-let products = [];
-let lastSearchRows = [];
-let lastKeyword = '';
+let productMap = new Map();
+let lastResults = [];
 
-function normalizeInput(text) {
-  return String(text || '')
-    .toUpperCase()
-    .replace(/\s+/g, '')
+function normalizeText(value) {
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/\s+/g, "")
     .trim();
 }
 
-function escapeHtml(str) {
-  return String(str || '').replace(/[&<>"']/g, function (m) {
-    return ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;'
-    })[m];
+function compactColorRow(row) {
+  // New compact format:
+  // [Color_Code_Display, Color_Code_Normalized, Color_Number, Suffix, Product_ID]
+  if (Array.isArray(row)) {
+    return {
+      display: String(row[0] ?? "").trim(),
+      norm: String(row[1] ?? "").trim(),
+      number: String(row[2] ?? "").trim(),
+      suffix: String(row[3] ?? "").trim(),
+      productId: String(row[4] ?? "").trim()
+    };
+  }
+
+  // Backward compatibility for old object-format colors.json
+  return {
+    display: String(row.Color_Code_Display ?? row.display ?? row.code ?? "").trim(),
+    norm: String(row.Color_Code_Normalized ?? row.norm ?? "").trim(),
+    number: String(row.Color_Number ?? row.number ?? "").trim(),
+    suffix: String(row.Suffix ?? row.suffix ?? "").trim(),
+    productId: String(row.Product_ID ?? row.productId ?? row.product_id ?? "").trim()
+  };
+}
+
+function productIdOf(product) {
+  return String(product.Product_ID ?? product.productId ?? product.product_id ?? "").trim();
+}
+
+function productNameOf(product) {
+  return String(product.Product_Name ?? product.name ?? "").trim();
+}
+
+function productCategoryOf(product) {
+  return String(product.Category ?? product.category ?? "").trim();
+}
+
+function productUrlOf(product) {
+  return String(product.Product_URL ?? product.url ?? "").trim();
+}
+
+function productStatusOf(product) {
+  return String(product.Status ?? product.status ?? "").trim();
+}
+
+function isProductActive(product) {
+  const status = productStatusOf(product).toLowerCase();
+  return !status || ["active", "y", "yes", "사용", "판매", "판매중"].includes(status);
+}
+
+function sortOrderOf(product) {
+  const value = Number(product.Sort_Order ?? product.sortOrder ?? product.sort_order ?? 999999);
+  return Number.isFinite(value) ? value : 999999;
+}
+
+function getEl(...selectors) {
+  for (const selector of selectors) {
+    const el = document.querySelector(selector);
+    if (el) return el;
+  }
+  return null;
+}
+
+function ensureResultsContainer() {
+  let colorBox = getEl("#results", "#colorResults", "#searchResults", ".results", ".color-results");
+  if (!colorBox) {
+    colorBox = document.createElement("div");
+    colorBox.id = "results";
+    document.body.appendChild(colorBox);
+  }
+
+  let productBox = getEl("#productResults", "#productList", "#products", ".product-results", ".product-list");
+  if (!productBox || productBox === colorBox) {
+    productBox = document.createElement("div");
+    productBox.id = "productResults";
+    colorBox.insertAdjacentElement("afterend", productBox);
+  }
+
+  return { colorBox, productBox };
+}
+
+function setStatus(message) {
+  const { colorBox } = ensureResultsContainer();
+  colorBox.innerHTML = `<p class="finder-status">${message}</p>`;
+}
+
+async function loadData() {
+  setStatus("데이터를 불러오는 중입니다...");
+
+  const colorResponses = await Promise.all(
+    COLOR_FILES.map(file =>
+      fetch(file, { cache: "no-store" }).then(response => {
+        if (!response.ok) throw new Error(`${file} 로드 실패`);
+        return response.json();
+      })
+    )
+  );
+
+  colorRows = colorResponses.flat().map(compactColorRow).filter(row => row.display && row.productId);
+
+  const productResponse = await fetch("products.json", { cache: "no-store" });
+  if (!productResponse.ok) throw new Error("products.json 로드 실패");
+  const products = await productResponse.json();
+
+  productMap = new Map();
+  products.forEach(product => {
+    const id = productIdOf(product);
+    if (id) productMap.set(id, product);
   });
+
+  setStatus("검색어를 입력해 주세요.");
 }
 
-async function loadJson(url) {
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) {
-    throw new Error(`데이터를 불러오지 못했습니다: ${url}`);
-  }
-  return await res.json();
-}
+function searchColors(query) {
+  const q = normalizeText(query);
+  if (!q) return [];
 
-async function initFinder() {
-  const resultBox = document.getElementById('finderResult');
-  try {
-    [colorRows, products] = await Promise.all([
-      loadJson(COLORS_URL),
-      loadJson(PRODUCTS_URL)
-    ]);
+  const matched = [];
+  for (const row of colorRows) {
+    const displayNorm = normalizeText(row.display);
+    const rowNorm = normalizeText(row.norm || row.display);
+    const numberNorm = normalizeText(row.number);
 
-    bindEvents();
+    if (displayNorm.includes(q) || rowNorm.includes(q) || numberNorm.includes(q)) {
+      const exactScore =
+        rowNorm === q || displayNorm === q ? 0 :
+        numberNorm === q ? 1 :
+        displayNorm.startsWith(q) || rowNorm.startsWith(q) ? 2 :
+        numberNorm.startsWith(q) ? 3 :
+        4;
 
-    resultBox.innerHTML = `
-      <div class="finder-empty">
-        <p>컬러번호를 검색해 주세요.</p>
-      </div>
-    `;
-  } catch (err) {
-    console.error(err);
-    resultBox.innerHTML = `
-      <div class="finder-error">
-        <p>데이터를 불러오지 못했습니다.</p>
-        <p style="font-size:12px; color:#999;">${escapeHtml(err.message)}</p>
-      </div>
-    `;
-  }
-}
-
-function bindEvents() {
-  const searchBtn = document.getElementById('colorSearchBtn');
-  const input = document.getElementById('colorSearchInput');
-
-  if (searchBtn) {
-    searchBtn.addEventListener('click', searchColors);
-  }
-
-  if (input) {
-    input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        searchColors();
-      }
-    });
-  }
-
-  document.addEventListener('click', function (e) {
-    const chip = e.target.closest('[data-chip]');
-    if (chip) {
-      const value = chip.getAttribute('data-chip') || '';
-      const inputEl = document.getElementById('colorSearchInput');
-      if (inputEl) inputEl.value = value;
-      searchColors();
-      return;
+      matched.push({ row, exactScore });
     }
-
-    const resultItem = e.target.closest('.finder-result-item');
-    if (resultItem) {
-      const colorCode = resultItem.getAttribute('data-color');
-      showProducts(colorCode);
-      return;
-    }
-
-    const backBtn = e.target.closest('#finderBackBtn');
-    if (backBtn) {
-      renderColorList(lastSearchRows, lastKeyword);
-    }
-  });
-}
-
-function searchColors() {
-  const input = document.getElementById('colorSearchInput');
-  const keyword = String(input?.value || '').trim();
-  const normalized = normalizeInput(keyword);
-
-  if (!keyword) {
-    document.getElementById('finderResult').innerHTML = `
-      <div class="finder-empty">
-        <p>검색어를 입력해 주세요.</p>
-      </div>
-    `;
-    return;
   }
 
-  let matchedRows = [];
-
-  if (/^\d+$/.test(keyword)) {
-    matchedRows = colorRows.filter(row =>
-      String(row.Color_Number || '').includes(keyword)
-    );
-  } else {
-    matchedRows = colorRows.filter(row =>
-      normalizeInput(row.Color_Code_Normalized) === normalized ||
-      normalizeInput(row.Color_Code_Display) === normalized
-    );
-  }
-
-  lastSearchRows = matchedRows;
-  lastKeyword = keyword;
-
-  renderColorList(matchedRows, keyword);
-}
-
-function renderColorList(rows, keyword) {
-  const resultBox = document.getElementById('finderResult');
-
-  if (!rows || !rows.length) {
-    resultBox.innerHTML = `
-      <div class="finder-empty">
-        <p><strong>${escapeHtml(keyword)}</strong>에 대한 검색 결과가 없습니다.</p>
-      </div>
-    `;
-    return;
-  }
-
-  const uniqueMap = new Map();
-
-  rows.forEach(row => {
-    const key = row.Color_Code_Display;
-    if (!uniqueMap.has(key)) {
-      uniqueMap.set(key, {
-        Color_Code_Display: row.Color_Code_Display,
-        Category: row.Category,
-        Product_Line: row.Product_Line,
-        Color_Number: row.Color_Number,
-        Suffix: row.Suffix
+  const grouped = new Map();
+  matched.forEach(({ row, exactScore }) => {
+    const key = row.display;
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        display: row.display,
+        number: row.number,
+        suffix: row.suffix,
+        productIds: new Set(),
+        score: exactScore
       });
     }
+    const item = grouped.get(key);
+    item.productIds.add(row.productId);
+    item.score = Math.min(item.score, exactScore);
   });
 
-  const uniqueColors = Array.from(uniqueMap.values()).sort((a, b) => {
-    const aNum = String(a.Color_Number || '');
-    const bNum = String(b.Color_Number || '');
-    const numCompare = aNum.localeCompare(bNum, undefined, { numeric: true });
-    if (numCompare !== 0) return numCompare;
-    return String(a.Suffix || '').localeCompare(String(b.Suffix || ''));
-  });
-
-  const html = uniqueColors.map(item => `
-    <div class="finder-result-item" data-color="${escapeHtml(item.Color_Code_Display)}" style="cursor:pointer; border:1px solid #e5e5e5; border-radius:10px; padding:14px; margin-bottom:10px; background:#fff;">
-      <div style="font-size:18px; font-weight:700; color:#111;">${escapeHtml(item.Color_Code_Display)}</div>
-      <div style="margin-top:4px; font-size:13px; color:#666;">${escapeHtml(item.Category)} / ${escapeHtml(item.Product_Line)}</div>
-    </div>
-  `).join('');
-
-  resultBox.innerHTML = `
-    <div style="margin-bottom:14px; font-size:14px; color:#555;">
-      <strong>${escapeHtml(keyword)}</strong> 검색 결과 ${uniqueColors.length}건
-    </div>
-    ${html}
-  `;
+  return Array.from(grouped.values())
+    .sort((a, b) => a.score - b.score || a.display.localeCompare(b.display, "ko"))
+    .slice(0, 300);
 }
 
-function showProducts(colorCode) {
-  const resultBox = document.getElementById('finderResult');
+function renderColorResults(results, query) {
+  const { colorBox, productBox } = ensureResultsContainer();
+  productBox.innerHTML = "";
 
-  const matchedRows = colorRows.filter(row => row.Color_Code_Display === colorCode);
+  if (!query.trim()) {
+    colorBox.innerHTML = `<p class="finder-status">검색어를 입력해 주세요.</p>`;
+    return;
+  }
 
-  const matchedProducts = matchedRows
-    .map(row => products.find(p => p.Product_ID === row.Product_ID && String(p.Status || '').toUpperCase() === 'Y'))
-    .filter(Boolean);
+  if (!results.length) {
+    colorBox.innerHTML = `<p class="finder-status">검색 결과가 없습니다.</p>`;
+    return;
+  }
 
-  const uniqueProductsMap = new Map();
-  matchedProducts.forEach(product => {
-    if (!uniqueProductsMap.has(product.Product_ID)) {
-      uniqueProductsMap.set(product.Product_ID, product);
-    }
+  const html = [
+    `<div class="finder-summary">검색 결과 ${results.length}개</div>`,
+    `<div class="color-result-list">`
+  ];
+
+  results.forEach(item => {
+    html.push(`
+      <button type="button" class="color-result-item" data-code="${escapeHtml(item.display)}">
+        <strong>${escapeHtml(item.display)}</strong>
+        <span>수록 제품 ${item.productIds.size}건</span>
+      </button>
+    `);
   });
 
-  const uniqueProducts = Array.from(uniqueProductsMap.values()).sort((a, b) => {
-    return Number(a.Sort_Order || 999) - Number(b.Sort_Order || 999);
+  html.push(`</div>`);
+  colorBox.innerHTML = html.join("");
+
+  colorBox.querySelectorAll("[data-code]").forEach(button => {
+    button.addEventListener("click", () => showProductsForColor(button.dataset.code));
+  });
+}
+
+function showProductsForColor(colorCode) {
+  const { productBox } = ensureResultsContainer();
+
+  const rows = colorRows.filter(row => row.display === colorCode);
+  const products = rows
+    .map(row => productMap.get(row.productId))
+    .filter(Boolean)
+    .filter(isProductActive);
+
+  const unique = new Map();
+  products.forEach(product => {
+    unique.set(productIdOf(product), product);
   });
 
-  if (!uniqueProducts.length) {
-    resultBox.innerHTML = `
-      <button id="finderBackBtn" type="button" style="margin-bottom:12px; padding:8px 12px; border:1px solid #ddd; background:#fff; border-radius:8px; cursor:pointer;">← 검색 결과로 돌아가기</button>
-      <div class="finder-empty">
-        <p><strong>${escapeHtml(colorCode)}</strong>에 연결된 제품이 없습니다.</p>
-      </div>
+  const sortedProducts = Array.from(unique.values())
+    .sort((a, b) => sortOrderOf(a) - sortOrderOf(b) || productNameOf(a).localeCompare(productNameOf(b), "ko"));
+
+  if (!sortedProducts.length) {
+    productBox.innerHTML = `
+      <section class="product-section">
+        <h2>${escapeHtml(colorCode)}</h2>
+        <p class="finder-status">해당 컬러번호는 온라인 상품으로 확인이 어렵습니다. 고객센터로 연락해주세요.</p>
+      </section>
     `;
     return;
   }
 
-  const html = uniqueProducts.map(product => `
-    <div class="finder-product-card" style="border:1px solid #e5e5e5; border-radius:12px; padding:16px; margin-bottom:12px; background:#fff;">
-      <div style="font-size:16px; font-weight:700; color:#111; line-height:1.5;">${escapeHtml(product.Product_Name)}</div>
-      <div style="margin-top:6px; font-size:13px; color:#666;">${escapeHtml(product.Category)} / ${escapeHtml(product.Product_Line)}</div>
-      <div style="margin-top:12px;">
-        <a href="${escapeHtml(product.Product_URL)}" target="_blank" rel="noopener noreferrer" style="display:inline-block; padding:10px 14px; border-radius:8px; background:#111; color:#fff; text-decoration:none; font-size:14px;">제품 보기</a>
-      </div>
-    </div>
-  `).join('');
+  const html = [
+    `<section class="product-section">`,
+    `<h2>${escapeHtml(colorCode)}</h2>`,
+    `<p class="finder-summary">수록 제품 ${sortedProducts.length}건</p>`,
+    `<div class="product-result-list">`
+  ];
 
-  resultBox.innerHTML = `
-    <button id="finderBackBtn" type="button" style="margin-bottom:12px; padding:8px 12px; border:1px solid #ddd; background:#fff; border-radius:8px; cursor:pointer;">← 검색 결과로 돌아가기</button>
-    <div style="margin-bottom:14px;">
-      <div style="font-size:22px; font-weight:800; color:#111;">${escapeHtml(colorCode)}</div>
-      <div style="margin-top:4px; font-size:14px; color:#666;">수록 제품 ${uniqueProducts.length}건</div>
-    </div>
-    ${html}
-  `;
+  sortedProducts.forEach(product => {
+    const url = productUrlOf(product);
+    html.push(`
+      <article class="product-card">
+        <h3>${escapeHtml(productNameOf(product))}</h3>
+        <p>${escapeHtml(productCategoryOf(product))}</p>
+        ${url ? `<a class="product-link" href="${escapeAttribute(url)}" target="_blank" rel="noopener">제품 보기</a>` : ""}
+      </article>
+    `);
+  });
+
+  html.push(`</div></section>`);
+  productBox.innerHTML = html.join("");
+  productBox.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initFinder);
-} else {
-  initFinder();
+function bindSearch() {
+  const input = getEl("#searchInput", "#search-input", "#keyword", "input[type='search']", "input[type='text']");
+  const button = getEl("#searchButton", "#searchBtn", "#btnSearch", "button[type='submit']", "button");
+
+  if (!input) {
+    setStatus("검색 입력창을 찾을 수 없습니다. index.html의 input id를 확인해 주세요.");
+    return;
+  }
+
+  const run = () => {
+    const query = input.value || "";
+    lastResults = searchColors(query);
+    renderColorResults(lastResults, query);
+  };
+
+  if (button) button.addEventListener("click", run);
+
+  input.addEventListener("keydown", event => {
+    if (event.key === "Enter") run();
+  });
+
+  input.addEventListener("input", () => {
+    if (!input.value.trim()) renderColorResults([], "");
+  });
 }
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value).replaceAll("`", "&#096;");
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    await loadData();
+    bindSearch();
+  } catch (error) {
+    console.error(error);
+    setStatus(`데이터를 불러오지 못했습니다: ${escapeHtml(error.message)}`);
+  }
+});
