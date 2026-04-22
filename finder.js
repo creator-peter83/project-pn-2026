@@ -136,6 +136,13 @@ function searchColors(query) {
   const q = normalizeText(query);
   if (!q) return [];
 
+const cmykQ = /^p?\d+-\d+[cu]?$/i.test(String(query || "").trim())
+  ? normalizeText(String(query || "").trim().toUpperCase().startsWith("P")
+      ? String(query || "").trim()
+      : "P" + String(query || "").trim())
+  : "";
+const isNumberOnlyQuery = /^\d+$/.test(String(query || "").trim());
+
   const matched = [];
 
   for (const row of colorRows) {
@@ -143,7 +150,35 @@ function searchColors(query) {
     const rowNorm = normalizeText(row.norm || row.display);
     const numberNorm = normalizeText(row.number);
 
-    if (displayNorm.includes(q) || rowNorm.includes(q) || numberNorm.includes(q)) {
+const isCmykQuery = Boolean(cmykQ);
+
+if (
+  isCmykQuery
+    ? (
+        displayNorm === cmykQ ||
+        rowNorm === cmykQ ||
+        numberNorm === cmykQ ||
+        displayNorm === cmykQ + "c" ||
+        displayNorm === cmykQ + "u" ||
+        rowNorm === cmykQ + "c" ||
+        rowNorm === cmykQ + "u"
+      )
+    : isNumberOnlyQuery
+      ? (
+          numberNorm === q ||
+          displayNorm === q ||
+          rowNorm === q ||
+          displayNorm === q + "c" ||
+          displayNorm === q + "u" ||
+          displayNorm === q + "cp" ||
+          displayNorm === q + "up" ||
+          rowNorm === q + "c" ||
+          rowNorm === q + "u" ||
+          rowNorm === q + "cp" ||
+          rowNorm === q + "up"
+        )
+      : (displayNorm.includes(q) || rowNorm.includes(q) || numberNorm.includes(q))
+) {
       const exactScore =
         rowNorm === q || displayNorm === q ? 0 :
         numberNorm === q ? 1 :
