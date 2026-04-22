@@ -9,14 +9,47 @@ const COLOR_FILES = [
   "colors_munsell.json"
 ];
 
+const PREVIEW_FILE = "colors_preview.json";
+
 let colorRows = [];
 let productMap = new Map();
+let previewMap = new Map();
 
 function normalizeText(value) {
   return String(value ?? "")
     .toLowerCase()
     .replace(/\s+/g, "")
     .trim();
+}
+
+function normalizePreviewCode(value) {
+  return String(value ?? "")
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .trim();
+}
+
+function safePreviewHex(value) {
+  const hex = String(value ?? "").trim();
+  return /^#[0-9A-F]{3}([0-9A-F]{3})?$/i.test(hex) ? hex : "#f4f4f4";
+}
+
+function compactPreviewRow(row) {
+  if (Array.isArray(row)) {
+    return {
+      code: String(row[0] ?? "").trim(),
+      hex: safePreviewHex(row[1])
+    };
+  }
+
+  return {
+    code: String(row.Color_Code ?? row.colorCode ?? row.code ?? "").trim(),
+    hex: safePreviewHex(row.Preview_Hex ?? row.previewHex ?? row.hex ?? "")
+  };
+}
+
+function getPreviewHex(colorCode) {
+  return previewMap.get(normalizePreviewCode(colorCode)) || "#f4f4f4";
 }
 
 function compactColorRow(row) {
@@ -129,6 +162,24 @@ async function loadData() {
     if (id) productMap.set(id, product);
   });
 
+  try {
+    const previewResponse = await fetch(PREVIEW_FILE, { cache: "no-store" });
+    if (!previewResponse.ok) throw new Error(`${PREVIEW_FILE} 로드 실패`);
+
+    const previewRows = await previewResponse.json();
+    previewMap = new Map();
+
+    previewRows
+      .map(compactPreviewRow)
+      .filter(item => item.code && item.hex)
+      .forEach(item => {
+        previewMap.set(normalizePreviewCode(item.code), item.hex);
+      });
+  } catch (error) {
+    console.warn("컬러 미리보기 데이터를 불러오지 못했습니다.", error);
+    previewMap = new Map();
+  }
+
   setStatus("검색어를 입력해 주세요.");
 }
 
@@ -232,10 +283,15 @@ function renderColorResults(results, query) {
   ];
 
   results.forEach(item => {
+    const previewHex = getPreviewHex(item.display);
+
     html.push(`
       <div class="finder-result-item" role="button" tabindex="0" data-code="${escapeAttribute(item.display)}">
-        <strong>${escapeHtml(item.display)}</strong>
-        <div>수록 제품 ${item.productIds.size}건</div>
+        <div class="finder-result-text">
+          <strong>${escapeHtml(item.display)}</strong>
+          <div>수록 제품 ${item.productIds.size}건</div>
+        </div>
+        <span class="finder-color-chip" style="background-color: ${escapeAttribute(previewHex)};" aria-label="${escapeAttribute(item.display)} 참고 색상"></span>
       </div>
     `);
   });
