@@ -260,13 +260,6 @@ function showProductsForColor(colorCode) {
     `<button type="button" id="finderBackBtn">← 검색 결과로 돌아가기</button>`,
     `<div class="finder-empty"><strong>${escapeHtml(colorCode)}</strong><br>수록 제품 ${sortedProducts.length}건</div>`
   ];
-if (shouldShowPlasticInquiry(colorCode)) {
-  html.push(`
-    <div class="finder-empty">
-      팬톤 플라스틱 스탠다드 칩 낱장은 고객센터로 문의 바랍니다.
-    </div>
-  `);
-}
 
   sortedProducts.forEach(product => {
     const url = productUrlOf(product);
@@ -278,10 +271,11 @@ if (shouldShowPlasticInquiry(colorCode)) {
       </div>
     `);
   });
+
 if (shouldShowPlasticInquiry(colorCode)) {
   html.push(`
-    <div class="finder-empty">
-      팬톤 플라스틱 스탠다드 칩 낱장은 고객센터로 문의 바랍니다.
+    <div class="finder-product-card">
+      <strong>팬톤 플라스틱 스탠다드 칩 낱장은 고객센터로 문의 바랍니다.</strong>
     </div>
   `);
 }
