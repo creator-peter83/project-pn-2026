@@ -9,7 +9,7 @@ const COLOR_FILES = [
   "colors_munsell.json"
 ];
 
-const PREVIEW_FILE = "colors_preview.json";
+const PREVIEW_FILE = "colors_preview.json?v=20260423-1";
 
 let colorRows = [];
 let productMap = new Map();
