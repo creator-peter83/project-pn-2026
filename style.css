@@ -195,6 +195,47 @@ body {
   font-weight: 500;
 }
 
+
+
+.finder-product-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.finder-product-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.finder-product-thumb-wrap {
+  width: 120px;
+  height: 120px;
+  border: 1px solid #e3e3e3;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.finder-product-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: #ffffff;
+}
+
+.finder-product-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #f7f7f7;
+}
+
 #finderBackBtn {
   margin-bottom: 16px;
   padding: 11px 16px;
@@ -260,5 +301,15 @@ body {
   #colorSearchBtn svg {
     width: 20px;
     height: 20px;
+  }
+
+  .finder-product-main {
+    gap: 14px;
+    align-items: flex-start;
+  }
+
+  .finder-product-thumb-wrap {
+    width: 88px;
+    height: 88px;
   }
 }
