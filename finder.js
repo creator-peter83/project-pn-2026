@@ -137,23 +137,45 @@ function parseFhiQuery(rawQuery) {
   if (!raw) return null;
 
   const compact = raw.replace(/\s+/g, "");
-  const m1 = compact.match(/^(\d{2})-(\d{4})(TCX|TPG|TPM|TN|TSX)?$/i);
-  if (m1) {
+
+  const dashed = compact.match(/^(\d{2})-(\d{4})(TCX|TPG|TPM|TN|TSX)?$/i);
+  if (dashed) {
     return {
-      number: normalizeText(`${m1[1]}-${m1[2]}`),
-      suffix: normalizeText(m1[3] || "")
+      number: normalizeText(`${dashed[1]}-${dashed[2]}`),
+      suffix: normalizeText(dashed[3] || "")
     };
   }
 
-  const m2 = compact.match(/^(\d{2})(\d{4})(TCX|TPG|TPM|TN|TSX)?$/i);
-  if (m2) {
+  const plain = compact.match(/^(\d{2})(\d{4})(TCX|TPG|TPM|TN|TSX)?$/i);
+  if (plain) {
     return {
-      number: normalizeText(`${m2[1]}-${m2[2]}`),
-      suffix: normalizeText(m2[3] || "")
+      number: normalizeText(`${plain[1]}-${plain[2]}`),
+      suffix: normalizeText(plain[3] || "")
     };
   }
 
   return null;
+}
+
+function parseExactCodeQuery(rawQuery) {
+  const raw = String(rawQuery ?? "").trim().toUpperCase();
+  if (!raw) return "";
+
+  const fhiQuery = parseFhiQuery(rawQuery);
+  if (fhiQuery && !fhiQuery.suffix) {
+    return "";
+  }
+
+  const compact = raw.replace(/\s+/g, "");
+  const suffixes = ["TCX", "TPG", "TPM", "TN", "TSX", "SP", "CP", "UP", "C", "U"];
+
+  for (const suffix of suffixes) {
+    if (compact.endsWith(suffix) && compact.length > suffix.length) {
+      return normalizeText(compact);
+    }
+  }
+
+  return "";
 }
 
 function searchColors(query) {
@@ -161,14 +183,12 @@ function searchColors(query) {
   const q = normalizeText(rawQuery);
   if (!q) return [];
 
-const cmykQ = /^p?\d{1,2}-\d{1,2}[cu]?$/i.test(rawQuery)
-  ? normalizeText(rawQuery.toUpperCase().startsWith("P")
-      ? rawQuery
-      : "P" + rawQuery)
-  : "";
-
-  const isNumberOnlyQuery = /^\d+$/.test(rawQuery);
   const fhiQuery = parseFhiQuery(rawQuery);
+  const cmykQ = /^p?\d{1,2}-\d{1,2}[cu]?$/i.test(rawQuery)
+    ? normalizeText(rawQuery.toUpperCase().startsWith("P") ? rawQuery : "P" + rawQuery)
+    : "";
+  const isNumberOnlyQuery = /^\d+$/.test(rawQuery);
+  const exactCodeQ = parseExactCodeQuery(rawQuery);
 
   const matched = [];
 
@@ -180,7 +200,15 @@ const cmykQ = /^p?\d{1,2}-\d{1,2}[cu]?$/i.test(rawQuery)
 
     let isMatch = false;
 
-    if (cmykQ) {
+    if (fhiQuery) {
+      const numberMatch = numberNorm === fhiQuery.number;
+      const suffixMatch = !fhiQuery.suffix || suffixNorm === fhiQuery.suffix;
+
+      isMatch =
+        (numberMatch && suffixMatch) ||
+        displayNorm === q ||
+        rowNorm === q;
+    } else if (cmykQ) {
       isMatch =
         displayNorm === cmykQ ||
         rowNorm === cmykQ ||
@@ -189,14 +217,10 @@ const cmykQ = /^p?\d{1,2}-\d{1,2}[cu]?$/i.test(rawQuery)
         displayNorm === cmykQ + "u" ||
         rowNorm === cmykQ + "c" ||
         rowNorm === cmykQ + "u";
-    } else if (fhiQuery) {
-      const numberMatch = numberNorm === fhiQuery.number;
-      const suffixMatch = !fhiQuery.suffix || suffixNorm === fhiQuery.suffix;
-
+    } else if (exactCodeQ) {
       isMatch =
-        (numberMatch && suffixMatch) ||
-        displayNorm === q ||
-        rowNorm === q;
+        displayNorm === exactCodeQ ||
+        rowNorm === exactCodeQ;
     } else if (isNumberOnlyQuery) {
       isMatch =
         numberNorm === q ||
