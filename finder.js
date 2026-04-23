@@ -9,47 +9,14 @@ const COLOR_FILES = [
   "colors_munsell.json"
 ];
 
-const PREVIEW_FILE = "colors_preview.json?v=20260423-1";
-
 let colorRows = [];
 let productMap = new Map();
-let previewMap = new Map();
 
 function normalizeText(value) {
   return String(value ?? "")
     .toLowerCase()
     .replace(/\s+/g, "")
     .trim();
-}
-
-function normalizePreviewCode(value) {
-  return String(value ?? "")
-    .toUpperCase()
-    .replace(/\s+/g, "")
-    .trim();
-}
-
-function safePreviewHex(value) {
-  const hex = String(value ?? "").trim();
-  return /^#[0-9A-F]{3}([0-9A-F]{3})?$/i.test(hex) ? hex : "#f4f4f4";
-}
-
-function compactPreviewRow(row) {
-  if (Array.isArray(row)) {
-    return {
-      code: String(row[0] ?? "").trim(),
-      hex: safePreviewHex(row[1])
-    };
-  }
-
-  return {
-    code: String(row.Color_Code ?? row.colorCode ?? row.code ?? "").trim(),
-    hex: safePreviewHex(row.Preview_Hex ?? row.previewHex ?? row.hex ?? "")
-  };
-}
-
-function getPreviewHex(colorCode) {
-  return previewMap.get(normalizePreviewCode(colorCode)) || "#f4f4f4";
 }
 
 function compactColorRow(row) {
@@ -151,24 +118,6 @@ async function loadData() {
     .map(compactColorRow)
     .filter(row => row.display && row.productId);
 
-  try {
-    const previewResponse = await fetch(PREVIEW_FILE, { cache: "no-store" });
-    if (!previewResponse.ok) throw new Error(`${PREVIEW_FILE} 로드 실패`);
-
-    const previewRows = await previewResponse.json();
-    previewMap = new Map();
-
-    previewRows
-      .map(compactPreviewRow)
-      .filter(item => item.code && item.hex)
-      .forEach(item => {
-        previewMap.set(normalizePreviewCode(item.code), item.hex);
-      });
-  } catch (error) {
-    console.warn("컬러 미리보기 데이터를 불러오지 못했습니다.", error);
-    previewMap = new Map();
-  }
-
   const productResponse = await fetch("products.json", { cache: "no-store" });
   if (!productResponse.ok) throw new Error("products.json 로드 실패");
 
@@ -187,12 +136,12 @@ function searchColors(query) {
   const q = normalizeText(query);
   if (!q) return [];
 
-  const cmykQ = /^p?\d+-\d+[cu]?$/i.test(String(query || "").trim())
-    ? normalizeText(String(query || "").trim().toUpperCase().startsWith("P")
-        ? String(query || "").trim()
-        : "P" + String(query || "").trim())
-    : "";
-  const isNumberOnlyQuery = /^\d+$/.test(String(query || "").trim());
+const cmykQ = /^p?\d+-\d+[cu]?$/i.test(String(query || "").trim())
+  ? normalizeText(String(query || "").trim().toUpperCase().startsWith("P")
+      ? String(query || "").trim()
+      : "P" + String(query || "").trim())
+  : "";
+const isNumberOnlyQuery = /^\d+$/.test(String(query || "").trim());
 
   const matched = [];
 
@@ -201,35 +150,35 @@ function searchColors(query) {
     const rowNorm = normalizeText(row.norm || row.display);
     const numberNorm = normalizeText(row.number);
 
-    const isCmykQuery = Boolean(cmykQ);
+const isCmykQuery = Boolean(cmykQ);
 
-    if (
-      isCmykQuery
-        ? (
-            displayNorm === cmykQ ||
-            rowNorm === cmykQ ||
-            numberNorm === cmykQ ||
-            displayNorm === cmykQ + "c" ||
-            displayNorm === cmykQ + "u" ||
-            rowNorm === cmykQ + "c" ||
-            rowNorm === cmykQ + "u"
-          )
-        : isNumberOnlyQuery
-          ? (
-              numberNorm === q ||
-              displayNorm === q ||
-              rowNorm === q ||
-              displayNorm === q + "c" ||
-              displayNorm === q + "u" ||
-              displayNorm === q + "cp" ||
-              displayNorm === q + "up" ||
-              rowNorm === q + "c" ||
-              rowNorm === q + "u" ||
-              rowNorm === q + "cp" ||
-              rowNorm === q + "up"
-            )
-          : (displayNorm.includes(q) || rowNorm.includes(q) || numberNorm.includes(q))
-    ) {
+if (
+  isCmykQuery
+    ? (
+        displayNorm === cmykQ ||
+        rowNorm === cmykQ ||
+        numberNorm === cmykQ ||
+        displayNorm === cmykQ + "c" ||
+        displayNorm === cmykQ + "u" ||
+        rowNorm === cmykQ + "c" ||
+        rowNorm === cmykQ + "u"
+      )
+    : isNumberOnlyQuery
+      ? (
+          numberNorm === q ||
+          displayNorm === q ||
+          rowNorm === q ||
+          displayNorm === q + "c" ||
+          displayNorm === q + "u" ||
+          displayNorm === q + "cp" ||
+          displayNorm === q + "up" ||
+          rowNorm === q + "c" ||
+          rowNorm === q + "u" ||
+          rowNorm === q + "cp" ||
+          rowNorm === q + "up"
+        )
+      : (displayNorm.includes(q) || rowNorm.includes(q) || numberNorm.includes(q))
+) {
       const exactScore =
         rowNorm === q || displayNorm === q ? 0 :
         numberNorm === q ? 1 :
@@ -283,15 +232,10 @@ function renderColorResults(results, query) {
   ];
 
   results.forEach(item => {
-    const previewHex = getPreviewHex(item.display);
-
     html.push(`
       <div class="finder-result-item" role="button" tabindex="0" data-code="${escapeAttribute(item.display)}">
-        <div class="finder-result-text">
-          <strong>${escapeHtml(item.display)}</strong>
-          <div>수록 제품 ${item.productIds.size}건</div>
-        </div>
-        <span class="finder-color-chip" style="background-color: ${escapeAttribute(previewHex)};" aria-label="${escapeAttribute(item.display)} 참고 색상"></span>
+        <strong>${escapeHtml(item.display)}</strong>
+        <div>수록 제품 ${item.productIds.size}건</div>
       </div>
     `);
   });
@@ -309,7 +253,6 @@ function renderColorResults(results, query) {
     });
   });
 }
-
 function shouldShowPlasticInquiry(colorCode) {
   const code = String(colorCode || "").trim().toUpperCase();
 
@@ -318,7 +261,6 @@ function shouldShowPlasticInquiry(colorCode) {
 
   return false;
 }
-
 function showProductsForColor(colorCode) {
   const box = getResultBox();
 
@@ -365,14 +307,13 @@ function showProductsForColor(colorCode) {
     `);
   });
 
-  if (shouldShowPlasticInquiry(colorCode)) {
-    html.push(`
-      <div class="finder-product-card">
-        <strong>팬톤 플라스틱 스탠다드 칩 낱장은 고객센터로 문의 바랍니다.</strong>
-      </div>
-    `);
-  }
-
+if (shouldShowPlasticInquiry(colorCode)) {
+  html.push(`
+    <div class="finder-product-card">
+      <strong>팬톤 플라스틱 스탠다드 칩 낱장은 고객센터로 문의 바랍니다.</strong>
+    </div>
+  `);
+}
   box.innerHTML = html.join("");
   bindBackButton();
   box.scrollIntoView({ behavior: "smooth", block: "start" });
