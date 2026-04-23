@@ -140,16 +140,16 @@ function parseFhiQuery(rawQuery) {
   const m1 = compact.match(/^(\d{2})-(\d{4})(TCX|TPG|TPM|TN|TSX)?$/i);
   if (m1) {
     return {
-      number: `${m1[1]}-${m1[2]}`.toLowerCase(),
-      suffix: (m1[3] || "").toLowerCase()
+      number: normalizeText(`${m1[1]}-${m1[2]}`),
+      suffix: normalizeText(m1[3] || "")
     };
   }
 
   const m2 = compact.match(/^(\d{2})(\d{4})(TCX|TPG|TPM|TN|TSX)?$/i);
   if (m2) {
     return {
-      number: `${m2[1]}-${m2[2]}`.toLowerCase(),
-      suffix: (m2[3] || "").toLowerCase()
+      number: normalizeText(`${m2[1]}-${m2[2]}`),
+      suffix: normalizeText(m2[3] || "")
     };
   }
 
@@ -162,7 +162,9 @@ function searchColors(query) {
   if (!q) return [];
 
   const cmykQ = /^p?\d+-\d+[cu]?$/i.test(rawQuery)
-    ? normalizeText(rawQuery.toUpperCase().startsWith("P") ? rawQuery : "P" + rawQuery)
+    ? normalizeText(rawQuery.toUpperCase().startsWith("P")
+        ? rawQuery
+        : "P" + rawQuery)
     : "";
 
   const isNumberOnlyQuery = /^\d+$/.test(rawQuery);
@@ -175,11 +177,10 @@ function searchColors(query) {
     const rowNorm = normalizeText(row.norm || row.display);
     const numberNorm = normalizeText(row.number);
     const suffixNorm = normalizeText(row.suffix);
-    const isCmykQuery = Boolean(cmykQ);
 
     let isMatch = false;
 
-    if (isCmykQuery) {
+    if (cmykQ) {
       isMatch =
         displayNorm === cmykQ ||
         rowNorm === cmykQ ||
@@ -191,6 +192,7 @@ function searchColors(query) {
     } else if (fhiQuery) {
       const numberMatch = numberNorm === fhiQuery.number;
       const suffixMatch = !fhiQuery.suffix || suffixNorm === fhiQuery.suffix;
+
       isMatch =
         (numberMatch && suffixMatch) ||
         displayNorm === q ||
