@@ -132,10 +132,6 @@ body {
 }
 
 .finder-result-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
   border: 1px solid #e7e7e7;
   border-radius: 20px;
   padding: 18px 22px;
@@ -143,11 +139,6 @@ body {
   background: #ffffff;
   cursor: pointer;
   transition: border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
-}
-
-.finder-result-text {
-  min-width: 0;
-  flex: 1;
 }
 
 .finder-result-item:hover {
@@ -164,20 +155,10 @@ body {
   color: #000000;
 }
 
-.finder-result-text div {
+.finder-result-item div {
   margin-top: 6px;
   font-size: 15px;
   color: #666666;
-}
-
-.finder-color-chip {
-  display: block;
-  width: 74px;
-  height: 74px;
-  border: 1px solid rgba(0, 0, 0, 0.14);
-  border-radius: 16px;
-  flex-shrink: 0;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
 }
 
 .finder-product-card {
@@ -279,16 +260,5 @@ body {
   #colorSearchBtn svg {
     width: 20px;
     height: 20px;
-  }
-
-  .finder-result-item {
-    padding: 16px 18px;
-    gap: 14px;
-  }
-
-  .finder-color-chip {
-    width: 58px;
-    height: 58px;
-    border-radius: 14px;
   }
 }
