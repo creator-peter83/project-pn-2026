@@ -151,17 +151,6 @@ async function loadData() {
     .map(compactColorRow)
     .filter(row => row.display && row.productId);
 
-  const productResponse = await fetch("products.json", { cache: "no-store" });
-  if (!productResponse.ok) throw new Error("products.json 로드 실패");
-
-  const products = await productResponse.json();
-  productMap = new Map();
-
-  products.forEach(product => {
-    const id = productIdOf(product);
-    if (id) productMap.set(id, product);
-  });
-
   try {
     const previewResponse = await fetch(PREVIEW_FILE, { cache: "no-store" });
     if (!previewResponse.ok) throw new Error(`${PREVIEW_FILE} 로드 실패`);
@@ -180,6 +169,17 @@ async function loadData() {
     previewMap = new Map();
   }
 
+  const productResponse = await fetch("products.json", { cache: "no-store" });
+  if (!productResponse.ok) throw new Error("products.json 로드 실패");
+
+  const products = await productResponse.json();
+  productMap = new Map();
+
+  products.forEach(product => {
+    const id = productIdOf(product);
+    if (id) productMap.set(id, product);
+  });
+
   setStatus("검색어를 입력해 주세요.");
 }
 
@@ -187,12 +187,12 @@ function searchColors(query) {
   const q = normalizeText(query);
   if (!q) return [];
 
-const cmykQ = /^p?\d+-\d+[cu]?$/i.test(String(query || "").trim())
-  ? normalizeText(String(query || "").trim().toUpperCase().startsWith("P")
-      ? String(query || "").trim()
-      : "P" + String(query || "").trim())
-  : "";
-const isNumberOnlyQuery = /^\d+$/.test(String(query || "").trim());
+  const cmykQ = /^p?\d+-\d+[cu]?$/i.test(String(query || "").trim())
+    ? normalizeText(String(query || "").trim().toUpperCase().startsWith("P")
+        ? String(query || "").trim()
+        : "P" + String(query || "").trim())
+    : "";
+  const isNumberOnlyQuery = /^\d+$/.test(String(query || "").trim());
 
   const matched = [];
 
@@ -201,35 +201,35 @@ const isNumberOnlyQuery = /^\d+$/.test(String(query || "").trim());
     const rowNorm = normalizeText(row.norm || row.display);
     const numberNorm = normalizeText(row.number);
 
-const isCmykQuery = Boolean(cmykQ);
+    const isCmykQuery = Boolean(cmykQ);
 
-if (
-  isCmykQuery
-    ? (
-        displayNorm === cmykQ ||
-        rowNorm === cmykQ ||
-        numberNorm === cmykQ ||
-        displayNorm === cmykQ + "c" ||
-        displayNorm === cmykQ + "u" ||
-        rowNorm === cmykQ + "c" ||
-        rowNorm === cmykQ + "u"
-      )
-    : isNumberOnlyQuery
-      ? (
-          numberNorm === q ||
-          displayNorm === q ||
-          rowNorm === q ||
-          displayNorm === q + "c" ||
-          displayNorm === q + "u" ||
-          displayNorm === q + "cp" ||
-          displayNorm === q + "up" ||
-          rowNorm === q + "c" ||
-          rowNorm === q + "u" ||
-          rowNorm === q + "cp" ||
-          rowNorm === q + "up"
-        )
-      : (displayNorm.includes(q) || rowNorm.includes(q) || numberNorm.includes(q))
-) {
+    if (
+      isCmykQuery
+        ? (
+            displayNorm === cmykQ ||
+            rowNorm === cmykQ ||
+            numberNorm === cmykQ ||
+            displayNorm === cmykQ + "c" ||
+            displayNorm === cmykQ + "u" ||
+            rowNorm === cmykQ + "c" ||
+            rowNorm === cmykQ + "u"
+          )
+        : isNumberOnlyQuery
+          ? (
+              numberNorm === q ||
+              displayNorm === q ||
+              rowNorm === q ||
+              displayNorm === q + "c" ||
+              displayNorm === q + "u" ||
+              displayNorm === q + "cp" ||
+              displayNorm === q + "up" ||
+              rowNorm === q + "c" ||
+              rowNorm === q + "u" ||
+              rowNorm === q + "cp" ||
+              rowNorm === q + "up"
+            )
+          : (displayNorm.includes(q) || rowNorm.includes(q) || numberNorm.includes(q))
+    ) {
       const exactScore =
         rowNorm === q || displayNorm === q ? 0 :
         numberNorm === q ? 1 :
@@ -309,6 +309,7 @@ function renderColorResults(results, query) {
     });
   });
 }
+
 function shouldShowPlasticInquiry(colorCode) {
   const code = String(colorCode || "").trim().toUpperCase();
 
@@ -317,6 +318,7 @@ function shouldShowPlasticInquiry(colorCode) {
 
   return false;
 }
+
 function showProductsForColor(colorCode) {
   const box = getResultBox();
 
@@ -363,13 +365,14 @@ function showProductsForColor(colorCode) {
     `);
   });
 
-if (shouldShowPlasticInquiry(colorCode)) {
-  html.push(`
-    <div class="finder-product-card">
-      <strong>팬톤 플라스틱 스탠다드 칩 낱장은 고객센터로 문의 바랍니다.</strong>
-    </div>
-  `);
-}
+  if (shouldShowPlasticInquiry(colorCode)) {
+    html.push(`
+      <div class="finder-product-card">
+        <strong>팬톤 플라스틱 스탠다드 칩 낱장은 고객센터로 문의 바랍니다.</strong>
+      </div>
+    `);
+  }
+
   box.innerHTML = html.join("");
   bindBackButton();
   box.scrollIntoView({ behavior: "smooth", block: "start" });
