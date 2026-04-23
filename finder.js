@@ -161,11 +161,11 @@ function searchColors(query) {
   const q = normalizeText(rawQuery);
   if (!q) return [];
 
-  const cmykQ = /^p?\d+-\d+[cu]?$/i.test(rawQuery)
-    ? normalizeText(rawQuery.toUpperCase().startsWith("P")
-        ? rawQuery
-        : "P" + rawQuery)
-    : "";
+const cmykQ = /^p?\d{1,2}-\d{1,2}[cu]?$/i.test(rawQuery)
+  ? normalizeText(rawQuery.toUpperCase().startsWith("P")
+      ? rawQuery
+      : "P" + rawQuery)
+  : "";
 
   const isNumberOnlyQuery = /^\d+$/.test(rawQuery);
   const fhiQuery = parseFhiQuery(rawQuery);
