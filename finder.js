@@ -366,7 +366,7 @@ function showProductsForColor(colorCode) {
   if (shouldShowPlasticInquiry(colorCode)) {
     html.push(`
       <div class="finder-product-card">
-        <strong>팬톤 플라스틱 스탠다드 칩 낱장은 고객센터로 문의 바랍니다.</strong>
+        <strong>팬톤 플라스틱 스탠다드 칩 낱장은 고객센터(1688-4577)문의 바랍니다.</strong>
       </div>
     `);
   }

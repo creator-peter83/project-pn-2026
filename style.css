@@ -248,6 +248,17 @@ body {
   cursor: pointer;
 }
 
+.finder-powered {
+  position: fixed;
+  right: 24px;
+  bottom: 18px;
+  z-index: 20;
+  color: #000000;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
 @media (max-width: 1024px) {
   .finder-wrap {
     padding: 60px 24px 80px;
@@ -311,5 +322,11 @@ body {
   .finder-product-thumb-wrap {
     width: 88px;
     height: 88px;
+  }
+
+  .finder-powered {
+    right: 14px;
+    bottom: 12px;
+    font-size: 12px;
   }
 }
