@@ -76,6 +76,72 @@ function sortOrderOf(product) {
   return Number.isFinite(value) ? value : 999999;
 }
 
+function productSearchKeywordsOf(product) {
+  return String(
+    product.Search_Keywords ??
+    product.searchKeywords ??
+    product.search_keywords ??
+    ""
+  ).trim();
+}
+
+function isLikelyColorQuery(rawQuery) {
+  const raw = String(rawQuery ?? "").trim();
+  if (!raw) return false;
+
+  if (/^\d+$/.test(raw)) return true;
+  if (/^p?\d{1,2}-\d{1,2}[cu]?$/i.test(raw)) return true;
+  if (/^\d{2}-\d{4}(\s*)?(TCX|TPG|TPM|TN|TSX)?$/i.test(raw)) return true;
+  if (/^\d{2}\d{4}(TCX|TPG|TPM|TN|TSX)?$/i.test(raw)) return true;
+  if (/^\d+[\s-]?(C|U|CP|UP)$/i.test(raw)) return true;
+
+  return false;
+}
+
+function searchProducts(query) {
+  const rawQuery = String(query || "").trim();
+  const q = normalizeText(rawQuery);
+  if (!q) return [];
+
+  // 숫자-only / 컬러번호 형식 검색은 기존 컬러번호 검색을 우선합니다.
+  // 예: 100, 100 C, 19-4052, P1-1
+  if (isLikelyColorQuery(rawQuery)) return [];
+
+  const products = Array.from(productMap.values())
+    .filter(isProductActive)
+    .map(product => {
+      const name = productNameOf(product);
+      const category = productCategoryOf(product);
+      const id = productIdOf(product);
+      const keywords = productSearchKeywordsOf(product);
+
+      const nameNorm = normalizeText(name);
+      const categoryNorm = normalizeText(category);
+      const idNorm = normalizeText(id);
+      const keywordsNorm = normalizeText(keywords);
+      const haystack = `${nameNorm} ${categoryNorm} ${idNorm} ${keywordsNorm}`;
+
+      let score = 999;
+      if (idNorm === q) score = 0;
+      else if (nameNorm === q) score = 1;
+      else if (nameNorm.includes(q)) score = 2;
+      else if (keywordsNorm && keywordsNorm.includes(q)) score = 3;
+      else if (categoryNorm.includes(q)) score = 4;
+      else if (idNorm.includes(q)) score = 5;
+      else if (haystack.includes(q)) score = 6;
+
+      return { product, score };
+    })
+    .filter(item => item.score < 999)
+    .sort((a, b) =>
+      a.score - b.score ||
+      sortOrderOf(a.product) - sortOrderOf(b.product) ||
+      productNameOf(a.product).localeCompare(productNameOf(b.product), "ko")
+    );
+
+  return products.map(item => item.product).slice(0, 100);
+}
+
 function getEl(...selectors) {
   for (const selector of selectors) {
     const el = document.querySelector(selector);
@@ -257,6 +323,102 @@ const cmykQ = /^p?\d{1,2}-\d{1,2}[cu]?$/i.test(rawQuery)
     .slice(0, 300);
 }
 
+function productCardHtml(product, clickable = false) {
+  const url = productUrlOf(product);
+  const imageUrl = productImageOf(product);
+  const clickAttrs = clickable && url
+    ? ` role="link" tabindex="0" data-product-url="${escapeAttribute(url)}"`
+    : "";
+
+  return `
+    <div class="finder-product-card"${clickAttrs}>
+      <div class="finder-product-main">
+        <div class="finder-product-info">
+          <strong>${escapeHtml(productNameOf(product))}</strong>
+          <div>${escapeHtml(productCategoryOf(product))}</div>
+          ${url ? `<a href="${escapeAttribute(url)}" target="_blank" rel="noopener">제품 보기</a>` : ""}
+        </div>
+        <div class="finder-product-thumb-wrap">
+          ${imageUrl
+            ? `<img class="finder-product-thumb" src="${escapeAttribute(imageUrl)}" alt="${escapeAttribute(productNameOf(product))}">`
+            : `<div class="finder-product-thumb-placeholder"></div>`}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function bindProductCards(scope = document) {
+  scope.querySelectorAll("[data-product-url]").forEach(card => {
+    const open = event => {
+      if (event.target.closest("a")) return;
+      const url = card.dataset.productUrl;
+      if (url) window.open(url, "_blank", "noopener");
+    };
+
+    card.addEventListener("click", open);
+    card.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        const url = card.dataset.productUrl;
+        if (url) window.open(url, "_blank", "noopener");
+      }
+    });
+  });
+}
+
+function renderSearchResults(colorResults, productResults, query) {
+  const box = getResultBox();
+
+  if (!query.trim()) {
+    setStatus("검색어를 입력해 주세요.");
+    return;
+  }
+
+  if (!colorResults.length && !productResults.length) {
+    setStatus("검색 결과가 없습니다.");
+    return;
+  }
+
+  const html = [];
+
+  if (colorResults.length) {
+    html.push(`<div class="finder-empty">컬러번호 검색 결과 ${colorResults.length}개</div>`);
+
+    colorResults.forEach(item => {
+      html.push(`
+        <div class="finder-result-item" role="button" tabindex="0" data-code="${escapeAttribute(item.display)}">
+          <strong>${escapeHtml(item.display)}</strong>
+          <div>수록 제품 ${item.productIds.size}건</div>
+        </div>
+      `);
+    });
+  }
+
+  if (productResults.length) {
+    html.push(`<div class="finder-empty">제품 검색 결과 ${productResults.length}개</div>`);
+
+    productResults.forEach(product => {
+      html.push(productCardHtml(product, true));
+    });
+  }
+
+  box.innerHTML = html.join("");
+
+  box.querySelectorAll("[data-code]").forEach(item => {
+    const open = () => showProductsForColor(item.dataset.code);
+    item.addEventListener("click", open);
+    item.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        open();
+      }
+    });
+  });
+
+  bindProductCards(box);
+}
+
 function renderColorResults(results, query) {
   const box = getResultBox();
 
@@ -342,25 +504,7 @@ function showProductsForColor(colorCode) {
   ];
 
   sortedProducts.forEach(product => {
-    const url = productUrlOf(product);
-    const imageUrl = productImageOf(product);
-
-    html.push(`
-      <div class="finder-product-card">
-        <div class="finder-product-main">
-          <div class="finder-product-info">
-            <strong>${escapeHtml(productNameOf(product))}</strong>
-            <div>${escapeHtml(productCategoryOf(product))}</div>
-            ${url ? `<a href="${escapeAttribute(url)}" target="_blank" rel="noopener">제품 보기</a>` : ""}
-          </div>
-          <div class="finder-product-thumb-wrap">
-            ${imageUrl
-              ? `<img class="finder-product-thumb" src="${escapeAttribute(imageUrl)}" alt="${escapeAttribute(productNameOf(product))}">`
-              : `<div class="finder-product-thumb-placeholder"></div>`}
-          </div>
-        </div>
-      </div>
-    `);
+    html.push(productCardHtml(product, false));
   });
 
   if (shouldShowPlasticInquiry(colorCode)) {
@@ -382,8 +526,10 @@ function bindBackButton() {
 
   if (button && input) {
     button.addEventListener("click", () => {
-      const results = searchColors(input.value || "");
-      renderColorResults(results, input.value || "");
+      const query = input.value || "";
+      const colorResults = searchColors(query);
+      const productResults = searchProducts(query);
+      renderSearchResults(colorResults, productResults, query);
     });
   }
 }
@@ -407,8 +553,9 @@ function bindSearch() {
 
   const run = () => {
     const query = input.value || "";
-    const results = searchColors(query);
-    renderColorResults(results, query);
+    const colorResults = searchColors(query);
+    const productResults = searchProducts(query);
+    renderSearchResults(colorResults, productResults, query);
   };
 
   if (button) button.addEventListener("click", run);
