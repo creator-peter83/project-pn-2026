@@ -547,6 +547,21 @@ const SEARCH_SPARKLE_COLORS = ["#ff3b30", "#ff9500", "#ffcc00", "#34c759", "#007
 const SEARCH_SPARKLE_SYMBOLS = ["✦", "✧", "★"];
 let lastSearchSparkleTime = 0;
 
+function getInputTextPixelWidth(input) {
+  const style = window.getComputedStyle(input);
+  const canvas = getInputTextPixelWidth.canvas || (getInputTextPixelWidth.canvas = document.createElement("canvas"));
+  const context = canvas.getContext("2d");
+
+  context.font = `${style.fontStyle} ${style.fontVariant} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+
+  const selectionEnd = typeof input.selectionEnd === "number"
+    ? input.selectionEnd
+    : input.value.length;
+
+  const textBeforeCursor = input.value.slice(0, selectionEnd);
+  return context.measureText(textBeforeCursor).width;
+}
+
 function createSearchSparkles(input) {
   const now = Date.now();
 
@@ -555,12 +570,15 @@ function createSearchSparkles(input) {
   lastSearchSparkleTime = now;
 
   const rect = input.getBoundingClientRect();
-  const textLength = input.value.length;
-  const usableWidth = Math.max(80, rect.width - 90);
+  const style = window.getComputedStyle(input);
+  const paddingLeft = parseFloat(style.paddingLeft) || 24;
+  const paddingRight = parseFloat(style.paddingRight) || 24;
 
-  // 입력한 글자 위치를 대략 따라가되, 검색창 안쪽에서만 움직이도록 제한
-  const progress = Math.min(1, Math.max(0.08, textLength / 28));
-  const baseX = rect.left + 34 + usableWidth * progress;
+  // 실제 입력된 글자의 폭을 계산해서 커서/글씨 끝부분 근처에 별을 표시
+  const textWidth = getInputTextPixelWidth(input);
+  const minX = rect.left + paddingLeft + 10;
+  const maxX = rect.right - paddingRight - 18;
+  const baseX = Math.min(maxX, Math.max(minX, rect.left + paddingLeft + textWidth + 8));
 
   for (let i = 0; i < 3; i++) {
     const sparkle = document.createElement("span");
