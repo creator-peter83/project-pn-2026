@@ -86,6 +86,7 @@ body {
 }
 
 #colorSearchBtn {
+  position: relative;
   width: 160px;
   height: 72px;
   border: none;
@@ -96,19 +97,54 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  isolation: isolate;
   font-family: 'Noto Sans KR', sans-serif;
   font-size: 25px;
   font-weight: 800;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition: box-shadow 0.2s ease;
+}
+
+#colorSearchBtn::before {
+  content: "";
+  position: absolute;
+  top: -40%;
+  left: -70%;
+  width: 44%;
+  height: 180%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.55),
+    transparent
+  );
+  transform: rotate(22deg);
+  opacity: 0;
+  z-index: -1;
 }
 
 #colorSearchBtn:hover {
-  opacity: 0.92;
+  box-shadow: 0 9px 22px rgba(0, 0, 0, 0.16);
+}
+
+#colorSearchBtn:hover::before {
+  opacity: 1;
+  animation: color-search-button-shine 0.75s ease-out;
 }
 
 #colorSearchBtn:active {
   transform: scale(0.98);
+}
+
+@keyframes color-search-button-shine {
+  from {
+    left: -70%;
+  }
+
+  to {
+    left: 130%;
+  }
 }
 
 #colorSearchBtn svg {
