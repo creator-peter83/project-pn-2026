@@ -259,6 +259,39 @@ body {
   line-height: 1.2;
 }
 
+
+.search-sparkle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  font-size: 14px;
+  line-height: 1;
+  transform-origin: center;
+  animation: search-sparkle-pop 680ms cubic-bezier(.2,.8,.2,1) forwards;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+@keyframes search-sparkle-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.3) rotate(0deg);
+  }
+
+  20% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.2) rotate(10deg);
+  }
+
+  70% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-34px) scale(0.35) rotate(45deg);
+  }
+}
+
 @media (max-width: 1024px) {
   .finder-wrap {
     padding: 60px 24px 80px;

@@ -542,6 +542,48 @@ function getSearchButton() {
   return getEl("#colorSearchBtn", "#searchButton", "#searchBtn", "#btnSearch", "button[type='submit']", "button");
 }
 
+
+const SEARCH_SPARKLE_COLORS = ["#ff3b30", "#ff9500", "#ffcc00", "#34c759", "#007aff", "#5856d6", "#af52de", "#ff2d55"];
+const SEARCH_SPARKLE_SYMBOLS = ["✦", "✧", "★"];
+let lastSearchSparkleTime = 0;
+
+function createSearchSparkles(input) {
+  const now = Date.now();
+
+  // 입력 속도가 빠를 때 별이 과하게 쌓이지 않도록 제한
+  if (now - lastSearchSparkleTime < 55) return;
+  lastSearchSparkleTime = now;
+
+  const rect = input.getBoundingClientRect();
+  const textLength = input.value.length;
+  const usableWidth = Math.max(80, rect.width - 90);
+
+  // 입력한 글자 위치를 대략 따라가되, 검색창 안쪽에서만 움직이도록 제한
+  const progress = Math.min(1, Math.max(0.08, textLength / 28));
+  const baseX = rect.left + 34 + usableWidth * progress;
+
+  for (let i = 0; i < 3; i++) {
+    const sparkle = document.createElement("span");
+    sparkle.className = "search-sparkle";
+    sparkle.textContent = SEARCH_SPARKLE_SYMBOLS[i % SEARCH_SPARKLE_SYMBOLS.length];
+    sparkle.style.color = SEARCH_SPARKLE_COLORS[Math.floor(Math.random() * SEARCH_SPARKLE_COLORS.length)];
+
+    const offsetX = (i - 1) * 12 + (Math.random() * 10 - 5);
+    const offsetY = Math.random() * 10 - 5;
+
+    sparkle.style.left = `${baseX + offsetX}px`;
+    sparkle.style.top = `${rect.top + 8 + offsetY}px`;
+    sparkle.style.animationDelay = `${i * 45}ms`;
+    sparkle.style.fontSize = `${10 + Math.random() * 5}px`;
+
+    document.body.appendChild(sparkle);
+
+    setTimeout(() => {
+      sparkle.remove();
+    }, 900);
+  }
+}
+
 function bindSearch() {
   const input = getSearchInput();
   const button = getSearchButton();
@@ -565,7 +607,11 @@ function bindSearch() {
   });
 
   input.addEventListener("input", () => {
-    if (!input.value.trim()) setStatus("검색어를 입력해 주세요.");
+    if (input.value.trim()) {
+      createSearchSparkles(input);
+    } else {
+      setStatus("검색어를 입력해 주세요.");
+    }
   });
 }
 
